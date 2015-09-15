@@ -42,6 +42,9 @@ class audioProcessing:
         # get low pass filter tap coefficient
         self.h_lp = getLowPassFilter(self.fc, self.Fs/self.N_step, self.N_tap)
         
+        # compute beat duration (4-th note)
+        self.beat_duration = 60.0/bpm/4*self.Fs/self.N_step;
+        
         # initialize sample buffers
         self.s_in_buffer = []
         for n in range(4*self.block_size):
@@ -55,18 +58,18 @@ class audioProcessing:
         for n in range(self.N_tap):
             self.h_lp_state.append(0)
 
-        # compute beat duration (4-th note)
-        self.beat_duration = 60.0/bpm/4*self.Fs/self.N_step;
+        # initialize beat_loc and beat_error (2 bars of 16th note)
+        self.beat_loc     = []
+        self.beat_error   = []
+        for n in range(32):
+            self.beat_loc.append(0)
+            self.beat_error.append(0)
         
         # peak picking params
-        self.peak_loc     = []
-        self.beat_loc     = []
-        self.energy_type  = []
-        self.conf_meas    = []
-        self.beat_error   = []
-        self.t1           = t1 # threshold for peak picking
-        self.num_peaks    = 0
-        self.peak_loc_raw = 0
+        self.peak_loc_anchor  = 0
+        self.beat_loc_offset  = 0;
+        self.t1               = t1 # threshold for peak picking
+        self.num_peaks        = 0
         
     # -------------------------------------------
     # audio sample processing
@@ -84,7 +87,7 @@ class audioProcessing:
         
         # wait until buffer is full
         if self.iter < 4:
-            return 0 
+            return 0
 
         # STFT
         s_env = self.getShortTimeFFT()
@@ -104,7 +107,7 @@ class audioProcessing:
         
         # peak picking
         peak_found = self.getPeak()
-        
+
         return peak_found
         
     # -------------------------------------------
@@ -180,26 +183,47 @@ class audioProcessing:
                 continue
             
             # peak found!
-            peak_found = 1
-            self.peak_loc_raw = n - 3*self.t_inp_size
-            self.peak_loc.append(n + self.iter*self.t_inp_size - 112)
+            peak_loc = n + self.iter*self.t_inp_size - 112
             self.num_peaks = self.num_peaks + 1
-             
-            if self.num_peaks > 1:
-                temp_duration = self.peak_loc[self.num_peaks-1] - self.peak_loc[0]
-                self.beat_loc.append( round(temp_duration/self.beat_duration) + self.beat_loc[0] ) 
-                self.beat_error.append( temp_duration/self.beat_duration - self.beat_loc[self.num_peaks-1] + 1)
-            else: 
-                self.beat_loc.append(1.0)
-                self.beat_error.append(0)
-            
-            if peak_found == 1:
-                print "peak found!!!"
-                print self.beat_loc
-                self.energy_type.append(1)
-                break
+            peak_found = peak_found + 1
+                    
+            # compute beat info
+            self.computeBeatInfo(peak_loc)
         
         return peak_found    
+    
+    # -------------------------------------------
+    # compute beat info
+    # -------------------------------------------
+    def computeBeatInfo(self, peak_loc):
+        
+        # if this is the first peak, set to anchor to itself
+        if self.num_peaks == 1:
+            self.peak_loc_anchor = peak_loc
+        
+        # compute beat location and error from the anchor
+        temp_duration = peak_loc - self.peak_loc_anchor
+        temp_beat_loc = int(round(temp_duration/self.beat_duration) + self.beat_loc_offset)
+        temp_beat_err = temp_duration/self.beat_duration - temp_beat_loc
+        
+        # change the anchor loc if the beat if over 2 bars
+        if temp_beat_loc > 31:
+            self.clearBeatInfo()
+            self.peak_loc_anchor = peak_loc
+            temp_beat_loc = temp_beat_loc % 32
+            self.beat_loc_offset = temp_beat_loc
+        
+        self.beat_loc[temp_beat_loc] = 1
+        self.beat_error[temp_beat_loc] = temp_beat_err
+    
+    # -------------------------------------------
+    # clear beat info
+    # -------------------------------------------
+    def clearBeatInfo(self):
+        for n in range(32):
+            self.beat_loc[n] = 0
+            self.beat_error[n] = 0
+    
     
     # -------------------------------------------
     # get beat_loc
@@ -213,11 +237,6 @@ class audioProcessing:
     def getBeatError(self):
         return self.beat_error
     
-    # -------------------------------------------
-    # get energy_type array
-    # -------------------------------------------
-    def getEnergyTypeArr(self):
-        return self.energy_type
     
 
     

@@ -23,49 +23,61 @@ string_beat_3 = ["        ", "o       ", "  o     ", "o o     ", "    o   ", "o 
 # -------------------------------------------
 # print drum beat score
 # -------------------------------------------
-def printScore(beat_loc_float, beat_error): 
-    max_len = int(numpy.amax(beat_loc_float))
+def printScore(beat_loc, beat_error, level): 
 
-    beat_loc = []
-    for n in range(len(beat_loc_float)):
-        beat_loc.append(int(beat_loc_float[n]))
+    # level vs error threshold
+    if level == 1: 
+        error_thres = 0.10 # expert
+    elif level == 2:
+        error_thres = 0.15 # normal
+    else:
+        error_thres = 0.20 # easy
     
-    # print snare
-    beat_snare = []
-    for n in range(((max_len+3)/4)*4):
-        beat_snare.append(0)
+    # beginning
+    string_print_0 = "  "
+    string_print_1 = "| "
+    string_print_2 = "| "
+    string_print_3 = "| "
+    string_print_4 = "  "
 
-    for n in beat_loc:
-        beat_snare[n-1] = 1
-
-    string_print_0 = ""
-    string_print_1 = ""
-    string_print_2 = ""
-    string_print_3 = ""
-    string_print_4 = ""
 
     for n in range(8):
-        string_print_0 += ".       "
-    
-    for n in range((max_len+3)/4):
-        print_index = beat_snare[4*n] + 2*beat_snare[1+4*n] + 4*beat_snare[2+4*n] + 8*beat_snare[3+4*n]
+        
+        # top row
+        string_print_0 += str(n%4+1)+" . . . "
+        
+        # beat notation
+        print_index = beat_loc[4*n] + 2*beat_loc[1+4*n] + 4*beat_loc[2+4*n] + 8*beat_loc[3+4*n]
         string_print_1 += string_beat_1[print_index]
         string_print_2 += string_beat_2[print_index]
         string_print_3 += string_beat_3[print_index]
-
     
-    snare_cnt = 0
-    for n in range(((max_len+3)/4)*4):
-        if beat_snare[n] == 1:
-            if beat_error[snare_cnt] > -0.25 and beat_error[snare_cnt] < 0.25:
-                string_print_4 += "C "
-            elif beat_error[snare_cnt] < -0.25:
-                string_print_4 += "E "
-            elif beat_error[snare_cnt] > 0.25:
-                string_print_4 += "L "
-            snare_cnt = snare_cnt + 1
-        else:
-            string_print_4 += "  "
+        
+        for m in range(4):
+            if beat_loc[m+4*n] == 1:
+                if beat_error[m+4*n] > -error_thres and beat_error[m+4*n] < error_thres:
+                    string_print_4 += "C "
+                elif beat_error[m+4*n] < -error_thres:
+                    string_print_4 += "E "
+                elif beat_error[m+4*n] > error_thres:
+                    string_print_4 += "L "
+            else:
+                string_print_4 += "  "
+        
+        # middle
+        if n==3:
+            string_print_0 += "   "
+            string_print_1 += " | "
+            string_print_2 += " | "
+            string_print_3 += " | "
+            string_print_4 += "   "
+            
+    # ending
+    string_print_0 += "  "
+    string_print_1 += " |"
+    string_print_2 += " |"
+    string_print_3 += " |"
+    string_print_4 += "  "
     
     print string_print_0
     print string_print_1
@@ -73,22 +85,42 @@ def printScore(beat_loc_float, beat_error):
     print string_print_3
     print string_print_4
     
-    return string_print_0+"\n"+string_print_1+"\n"+string_print_2+"\n"+string_print_3+"\n"+string_print_4
+    return [string_print_0+"\n"+string_print_1+"\n"+string_print_2+"\n"+string_print_3, string_print_4]
 
 # -------------------------------------------
 # get default (empty) score
 # -------------------------------------------
 def getDefaultScore():
 
-    string_print_0 = ""
-    string_print_1 = ""
-    string_print_2 = ""
-    string_print_3 = ""
-    string_print_4 = ""
-    for n in range(8):
-        string_print_0 += ".       "
+    # beginning
+    string_print_0 = "  "
+    string_print_1 = "| "
+    string_print_2 = "| "
+    string_print_3 = "| "
+    string_print_4 = "  "
     
-    return string_print_0+"\n"+string_print_1+"\n"+string_print_2+"\n"+string_print_3+"\n"+string_print_4
+    for n in range(8):
+        string_print_0 += str(n%4+1)+" . . . "
+        string_print_1 += "        "
+        string_print_2 += "        "
+        string_print_3 += "        "
+        string_print_4 += "        "
+        # middle
+        if n==3:
+            string_print_0 += "   "
+            string_print_1 += " | "
+            string_print_2 += " | "
+            string_print_3 += " | "
+            string_print_4 += "   "
+    
+    # ending
+    string_print_0 += "  "
+    string_print_1 += " |"
+    string_print_2 += " |"
+    string_print_3 += " |"
+    string_print_4 += "  "
+    
+    return [string_print_0+"\n"+string_print_1+"\n"+string_print_2+"\n"+string_print_3, string_print_4]
 
 # -------------------------------------------
 # save the recording into wav file

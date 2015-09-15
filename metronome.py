@@ -51,11 +51,8 @@ class metronome:
                 if self.beat_cnt < 8:
                     amp = amp_arr_start[self.beat_cnt%8]
                     freq = freq_arr_start[self.beat_cnt%8]
-                elif self.beat_cnt < 24:
-                    amp = amp_arr[self.beat_cnt%8]
-                    freq = freq_arr[self.beat_cnt%8]
                 else:
-                    amp = 0
+                    amp = amp_arr[self.beat_cnt%8]
                     freq = freq_arr[self.beat_cnt%8]
                     
                     
